@@ -18,7 +18,6 @@ class NvoipError(RuntimeError):
 @dataclass(slots=True)
 class NvoipClient:
     base_url: str = "https://api.nvoip.com.br/v2"
-    oauth_basic_auth: str | None = None
     oauth_client_id: str | None = None
     oauth_client_secret: str | None = None
 
@@ -136,15 +135,10 @@ class NvoipClient:
         )
 
     def _resolve_basic_auth(self) -> str:
-        if self.oauth_basic_auth:
-            return self.oauth_basic_auth
-
         if self.oauth_client_id and self.oauth_client_secret:
             return self.encode_basic_auth(self.oauth_client_id, self.oauth_client_secret)
 
-        raise RuntimeError(
-            "Missing OAuth client credentials. Configure oauth_basic_auth or oauth_client_id + oauth_client_secret."
-        )
+        raise RuntimeError("Missing OAuth client credentials. Configure oauth_client_id + oauth_client_secret.")
 
     def _request_json(
         self,

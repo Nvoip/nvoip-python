@@ -17,12 +17,6 @@ export NVOIP_CALLER="1049"
 export NVOIP_TARGET_NUMBER="11999999999"
 ```
 
-Se a sua operacao ja armazena o header serializado, voce tambem pode enviar:
-
-```bash
-export NVOIP_OAUTH_BASIC_AUTH="basic_auth_base64"
-```
-
 ## Fluxos cobertos
 
 - gerar `access_token`

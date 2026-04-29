@@ -6,7 +6,6 @@ from nvoip import NvoipClient
 
 client = NvoipClient(
     base_url=os.getenv("NVOIP_BASE_URL", "https://api.nvoip.com.br/v2"),
-    oauth_basic_auth=os.getenv("NVOIP_OAUTH_BASIC_AUTH"),
     oauth_client_id=os.getenv("NVOIP_OAUTH_CLIENT_ID"),
     oauth_client_secret=os.getenv("NVOIP_OAUTH_CLIENT_SECRET"),
 )
