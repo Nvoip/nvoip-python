@@ -3,10 +3,33 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nvoip-python"
+name = "nvoip"
 version = "0.1.0"
-description = "Cliente Python simples para a API v2 da Nvoip."
+description = "SDK Python oficial para integrar OAuth, chamadas, OTP, WhatsApp, SMS e saldo com a API v2 da Nvoip."
+readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "GPL-3.0-only" }
+authors = [
+  { name = "Nvoip" }
+]
+keywords = ["nvoip", "voip", "telefonia", "sms", "whatsapp", "otp", "api"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Communications :: Telephony",
+  "Topic :: Software Development :: Libraries"
+]
+
+[project.urls]
+Homepage = "https://www.nvoip.com.br/"
+Documentation = "https://nvoip.docs.apiary.io/"
+Repository = "https://github.com/Nvoip/nvoip-python"
+Issues = "https://github.com/Nvoip/nvoip-python/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

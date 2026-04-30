@@ -8,6 +8,12 @@ SDK e exemplos oficiais da [Nvoip](https://www.nvoip.com.br/) para integrar a AP
 
 - Python 3.10+
 
+## Instalacao
+
+```bash
+pip install nvoip
+```
+
 ## Configuracao
 
 ```bash
