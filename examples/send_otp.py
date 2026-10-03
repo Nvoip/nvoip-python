@@ -10,7 +10,8 @@ oauth = client.create_client_credentials_token()
 
 response = client.send_otp(
     payload={
-        "sms": os.getenv("NVOIP_TARGET_NUMBER", "11999999999"),
+        "phoneNumber": os.environ["NVOIP_TARGET_NUMBER"],
+        "methods": {"sms": True},
     },
     access_token=oauth["access_token"],
 )

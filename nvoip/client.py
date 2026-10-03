@@ -4,13 +4,14 @@ import base64
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import quote, urlencode
+from urllib.parse import quote_plus, urlencode
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 
 class NvoipError(RuntimeError):
     def __init__(self, status: int, payload: Any):
-        super().__init__(f"Nvoip request failed with status {status}: {payload}")
+        super().__init__(f"Nvoip request failed with status {status}")
         self.status = status
         self.payload = payload
 
@@ -23,7 +24,10 @@ class NvoipClient:
 
     @staticmethod
     def encode_basic_auth(client_id: str, client_secret: str) -> str:
-        raw = f"{quote(client_id, safe='')}:{quote(client_secret, safe='')}".encode()
+        raw = (
+            f"{quote_plus(client_id)}:"
+            f"{quote_plus(client_secret)}"
+        ).encode()
         return base64.b64encode(raw).decode()
 
     def create_client_credentials_token(self) -> dict[str, Any]:
@@ -164,14 +168,19 @@ class NvoipClient:
         for key, value in (headers or {}).items():
             request.add_header(key, value)
 
-        with urlopen(request, timeout=30) as response:
-            raw = response.read().decode()
+        try:
+            response = urlopen(request, timeout=30)
+        except HTTPError as error:
+            response = error
+
+        with response as stream:
+            raw = stream.read().decode()
             try:
                 data = json.loads(raw) if raw else {}
             except json.JSONDecodeError:
                 data = {"raw": raw}
 
-            if response.status >= 400:
-                raise NvoipError(response.status, data)
+            if stream.status >= 400:
+                raise NvoipError(stream.status, data)
 
             return data
