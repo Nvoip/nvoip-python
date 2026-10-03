@@ -16,5 +16,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m py_compile nvoip/*.py examples/*.py
+      - run: python -m unittest discover -s tests
       - run: python -m pip install build
       - run: python -m build
