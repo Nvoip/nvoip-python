@@ -4,11 +4,13 @@ import os
 from nvoip import NvoipClient
 
 
-client = NvoipClient(base_url=os.getenv("NVOIP_BASE_URL", "https://api.nvoip.com.br/v2"))
+client = NvoipClient(base_url=os.getenv("NVOIP_BASE_URL", "https://api.nvoip.com.br/v3"), oauth_client_id=os.environ["NVOIP_OAUTH_CLIENT_ID"], oauth_client_secret=os.environ["NVOIP_OAUTH_CLIENT_SECRET"])
+oauth = client.create_client_credentials_token()
 
 response = client.check_otp(
     code=os.environ["NVOIP_OTP_CODE"],
     key=os.environ["NVOIP_OTP_KEY"],
+    access_token=oauth["access_token"],
 )
 
 print(json.dumps(response, indent=2, ensure_ascii=False))

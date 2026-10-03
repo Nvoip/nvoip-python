@@ -17,7 +17,7 @@ class NvoipError(RuntimeError):
 
 @dataclass(slots=True)
 class NvoipClient:
-    base_url: str = "https://api.nvoip.com.br/v2"
+    base_url: str = "https://api.nvoip.com.br/v3"
     oauth_client_id: str | None = None
     oauth_client_secret: str | None = None
 
@@ -26,15 +26,13 @@ class NvoipClient:
         raw = f"{client_id}:{client_secret}".encode()
         return base64.b64encode(raw).decode()
 
-    def create_access_token(self, numbersip: str, user_token: str) -> dict[str, Any]:
+    def create_client_credentials_token(self) -> dict[str, Any]:
         return self._request(
             "POST",
-            "/oauth/token",
+            "https://api.nvoip.com.br/auth/oauth2/token",
             body=urlencode(
-                {
-                    "username": numbersip,
-                    "password": user_token,
-                    "grant_type": "password",
+            {
+                    "grant_type": "client_credentials",
                 }
             ).encode(),
             headers={
@@ -46,7 +44,7 @@ class NvoipClient:
     def refresh_access_token(self, refresh_token: str) -> dict[str, Any]:
         return self._request(
             "POST",
-            "/oauth/token",
+            "https://api.nvoip.com.br/auth/oauth2/token",
             body=urlencode(
                 {
                     "grant_type": "refresh_token",
@@ -70,9 +68,8 @@ class NvoipClient:
         self,
         number_phone: str,
         message: str,
+        access_token: str,
         flash_sms: bool = False,
-        access_token: str | None = None,
-        napikey: str | None = None,
     ) -> dict[str, Any]:
         return self._request_json(
             "POST",
@@ -83,7 +80,6 @@ class NvoipClient:
                 "flashSms": flash_sms,
             },
             access_token=access_token,
-            napikey=napikey,
         )
 
     def create_call(self, caller: str, called: str, access_token: str) -> dict[str, Any]:
@@ -97,27 +93,25 @@ class NvoipClient:
     def get_call(
         self,
         call_id: str,
-        access_token: str | None = None,
-        napikey: str | None = None,
+        access_token: str,
     ) -> dict[str, Any]:
-        query = urlencode({"callId": call_id, **({"napikey": napikey} if napikey else {})})
+        query = urlencode({"callId": call_id})
         return self._request(
             "GET",
             f"/calls?{query}",
-            headers={"Authorization": f"Bearer {access_token}"} if access_token else {},
+            headers={"Authorization": f"Bearer {access_token}"},
         )
 
     def send_otp(
         self,
         payload: dict[str, Any],
-        access_token: str | None = None,
-        napikey: str | None = None,
+        access_token: str,
     ) -> dict[str, Any]:
-        return self._request_json("POST", "/otp", payload, access_token=access_token, napikey=napikey)
+        return self._request_json("POST", "/otp", payload, access_token=access_token)
 
-    def check_otp(self, code: str, key: str) -> dict[str, Any]:
+    def check_otp(self, code: str, key: str, access_token: str) -> dict[str, Any]:
         query = urlencode({"code": code, "key": key})
-        return self._request("GET", f"/check/otp?{query}")
+        return self._request("GET", f"/check/otp?{query}", headers={"Authorization": f"Bearer {access_token}"})
 
     def list_whatsapp_templates(self, access_token: str) -> dict[str, Any]:
         return self._request(
@@ -145,8 +139,7 @@ class NvoipClient:
         method: str,
         path: str,
         payload: dict[str, Any],
-        access_token: str | None = None,
-        napikey: str | None = None,
+        access_token: str,
     ) -> dict[str, Any]:
         return self._request(
             method,
@@ -154,9 +147,8 @@ class NvoipClient:
             body=json.dumps(payload).encode(),
             headers={
                 "Content-Type": "application/json",
-                **({"Authorization": f"Bearer {access_token}"} if access_token else {}),
+                "Authorization": f"Bearer {access_token}",
             },
-            napikey=napikey,
         )
 
     def _request(
@@ -165,12 +157,8 @@ class NvoipClient:
         path: str,
         body: bytes | None = None,
         headers: dict[str, str] | None = None,
-        napikey: str | None = None,
     ) -> dict[str, Any]:
-        url = self.base_url.rstrip("/") + path
-        if napikey:
-            separator = "&" if "?" in url else "?"
-            url = f"{url}{separator}{urlencode({'napikey': napikey})}"
+        url = path if path.startswith("http") else self.base_url.rstrip("/") + path
 
         request = Request(url, data=body, method=method)
         for key, value in (headers or {}).items():
