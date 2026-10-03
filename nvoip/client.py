@@ -4,7 +4,7 @@ import base64
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 
@@ -23,7 +23,7 @@ class NvoipClient:
 
     @staticmethod
     def encode_basic_auth(client_id: str, client_secret: str) -> str:
-        raw = f"{client_id}:{client_secret}".encode()
+        raw = f"{quote(client_id, safe='')}:{quote(client_secret, safe='')}".encode()
         return base64.b64encode(raw).decode()
 
     def create_client_credentials_token(self) -> dict[str, Any]:
