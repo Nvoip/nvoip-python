@@ -164,7 +164,12 @@ class NvoipClient:
     ) -> dict[str, Any]:
         url = path if path.startswith("http") else self.base_url.rstrip("/") + path
 
-        request = Request(url, data=body, method=method)
+        request = Request(
+            url,
+            data=body,
+            method=method,
+            headers={"User-Agent": "Nvoip-Python/3.0.1"},
+        )
         for key, value in (headers or {}).items():
             request.add_header(key, value)
 

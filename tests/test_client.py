@@ -22,6 +22,7 @@ class ClientTests(unittest.TestCase):
         client = NvoipClient(oauth_client_id='client: &+á', oauth_client_secret='dummy: &+é')
         sent = self.record(client.create_client_credentials_token)
         self.assertEqual(sent.full_url, 'https://api.nvoip.com.br/auth/oauth2/token')
+        self.assertEqual(sent.get_header('User-agent'), 'Nvoip-Python/3.0.1')
         self.assertEqual(sent.get_header('Content-type'), 'application/x-www-form-urlencoded')
         self.assertEqual(parse_qs(sent.data.decode()), {'grant_type': ['client_credentials']})
         actual = base64.b64decode(sent.get_header('Authorization')[6:]).decode()
