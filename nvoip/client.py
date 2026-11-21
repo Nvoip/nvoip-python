@@ -4,9 +4,9 @@ import base64
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import quote_plus, urlencode
-from urllib.request import Request, urlopen
 from urllib.error import HTTPError
+from urllib.parse import quote_plus, urlencode, urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 class NvoipError(RuntimeError):
@@ -14,6 +14,29 @@ class NvoipError(RuntimeError):
         super().__init__(f"Nvoip request failed with status {status}")
         self.status = status
         self.payload = payload
+
+
+def _http_origin(url: str) -> tuple[str, str, int] | None:
+    try:
+        parts = urlsplit(url)
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            return None
+        if parts.username is not None or parts.password is not None:
+            return None
+        port = parts.port
+    except ValueError:
+        return None
+    if port is None:
+        port = 443 if parts.scheme == "https" else 80
+    return parts.scheme, parts.hostname, port
+
+
+class _SameOriginRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        origin = _http_origin(req.full_url)
+        if origin is None or _http_origin(newurl) != origin:
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 @dataclass(slots=True)
@@ -174,7 +197,7 @@ class NvoipClient:
             request.add_header(key, value)
 
         try:
-            response = urlopen(request, timeout=30)
+            response = build_opener(_SameOriginRedirectHandler()).open(request, timeout=30)
         except HTTPError as error:
             response = error
 
@@ -185,7 +208,7 @@ class NvoipClient:
             except json.JSONDecodeError:
                 data = {"raw": raw}
 
-            if stream.status >= 400:
+            if stream.status >= 300:
                 raise NvoipError(stream.status, data)
 
             return data

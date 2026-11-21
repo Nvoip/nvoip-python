@@ -8,6 +8,8 @@ SDK e exemplos oficiais da [Nvoip](https://www.nvoip.com.br/) para integrar a AP
 
 Esta é uma quebra de compatibilidade: use `create_client_credentials_token()` com credenciais OAuth e envie o access token RS256 em `Authorization: Bearer`. O SDK usa `https://api.nvoip.com.br/auth/oauth2/token`; não use `napikey`, password grant ou `/v3/oauth/token`. Para SMS de texto livre, valide antes a política e o template aprovado aplicáveis à sua conta.
 
+O SDK segue redirecionamentos somente dentro da mesma origem (protocolo, host e porta). Um redirecionamento recusado retorna `NvoipError` com o status HTTP. Se a API mudar de origem, configure diretamente a URL da API autorizada.
+
 ## Requisitos
 
 - Python 3.10+
