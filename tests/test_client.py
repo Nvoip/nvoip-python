@@ -4,18 +4,21 @@ import json
 import unittest
 from urllib.error import HTTPError
 from urllib.parse import parse_qs, quote_plus, urlparse
+from urllib.request import Request
 from unittest.mock import patch
 
 from nvoip import NvoipClient
-from nvoip.client import NvoipError
+from nvoip.client import NvoipError, _SameOriginRedirectHandler
 
 class ClientTests(unittest.TestCase):
     def record(self, action):
-        with patch('nvoip.client.urlopen') as request:
+        with patch('nvoip.client.build_opener') as build_opener:
+            request = build_opener.return_value.open
             response = request.return_value.__enter__.return_value
             response.status = 200
             response.read.return_value = b'{}'
             action()
+            self.assertIsInstance(build_opener.call_args.args[0], _SameOriginRedirectHandler)
         return request.call_args.args[0]
 
     def test_client_credentials_form_and_special_characters(self):
@@ -49,13 +52,44 @@ class ClientTests(unittest.TestCase):
         payload = {'phoneNumber': '11999990000', 'methods': {'sms': True}}
         sent = self.record(lambda: client.send_otp(payload, 'dummy'))
         self.assertEqual(json.loads(sent.data), payload)
-        with patch('nvoip.client.urlopen', side_effect=HTTPError('https://example.invalid', 401, 'denied', {}, io.BytesIO(b'{"error":"denied"}'))):
+        with patch('nvoip.client.build_opener') as build_opener:
+            build_opener.return_value.open.side_effect = HTTPError(
+                'https://example.invalid', 401, 'denied', {}, io.BytesIO(b'{"error":"denied"}')
+            )
             with self.assertRaises(NvoipError) as error: client.get_balance('dummy')
         self.assertEqual(error.exception.status, 401)
 
     def test_missing_client_credentials_fail_before_transport(self):
-        with patch('nvoip.client.urlopen') as request:
+        with patch('nvoip.client.build_opener') as build_opener:
             with self.assertRaises(RuntimeError): NvoipClient().create_client_credentials_token()
-            request.assert_not_called()
+            build_opener.assert_not_called()
+
+    def test_redirect_keeps_authorization_within_origin(self):
+        handler = _SameOriginRedirectHandler()
+        request = Request('https://api.example.invalid/v3/balance', headers={'Authorization': 'Bearer dummy'})
+        updated = handler.redirect_request(request, None, 302, '', {}, 'https://api.example.invalid:443/result')
+        self.assertEqual(updated.get_header('Authorization'), 'Bearer dummy')
+
+    def test_redirect_rejects_different_origins(self):
+        handler = _SameOriginRedirectHandler()
+        request = Request('https://api.example.invalid/v3/balance')
+        for target in (
+            'https://other.example.invalid/result',
+            'https://api.example.invalid:444/result',
+            'http://api.example.invalid/result',
+            'ftp://api.example.invalid/result',
+            'https://user@api.example.invalid/result',
+        ):
+            with self.subTest(target=target):
+                self.assertIsNone(handler.redirect_request(request, None, 302, '', {}, target))
+
+    def test_unfollowed_redirect_is_reported_as_an_error(self):
+        with patch('nvoip.client.build_opener') as build_opener:
+            build_opener.return_value.open.side_effect = HTTPError(
+                'https://api.example.invalid', 302, 'redirect', {}, io.BytesIO(b'')
+            )
+            with self.assertRaises(NvoipError) as error:
+                NvoipClient().get_balance('dummy')
+        self.assertEqual(error.exception.status, 302)
 
 if __name__ == '__main__': unittest.main()
